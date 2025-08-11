@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BILLSOFT</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      header {
+        background: #2c3e50;
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+      #userArea {
+        font-size: 16px;
+      }
+      #userArea button {
+        margin-left: 10px;
+        padding: 6px 12px;
+        font-size: 14px;
+      }
+      main {
+        padding: 20px;
+      }
+      #loginForm {
+        margin-bottom: 20px;
+      }
+      #loginForm input[type="text"] {
+        padding: 8px;
+        font-size: 16px;
+        width: 200px;
+        margin-right: 10px;
+      }
+      #billForm input,
+      #billForm button {
+        padding: 8px;
+        margin: 5px;
+        font-size: 16px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: center;
+      }
+      th {
+        background-color: #ecf0f1;
+      }
+      #totalBill {
+        font-size: 20px;
+        margin-top: 10px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>BILLSOFT</h1>
+      <div id="userArea">
+        <!-- ইউজার নাম ও লগইন/লগআউট বাটন এখানে দেখানো হবে -->
+      </div>
+    </header>
+
+    <main>
+      <div id="loginSection">
+        <form id="loginForm">
+          <input
+            type="text"
+            id="userNameInput"
+            placeholder="আপনার নাম লিখুন"
+            required
+          />
+          <button type="submit">লগইন</button>
+        </form>
+      </div>
+
+      <div id="billSection" style="display: none">
+        <p>স্বাগতম, <span id="displayUserName"></span>!</p>
+        <form id="billForm">
+          <input type="text" id="itemName" placeholder="Item Name" required />
+          <input
+            type="number"
+            id="quantity"
+            placeholder="Quantity"
+            min="1"
+            required
+          />
+          <input
+            type="number"
+            id="price"
+            placeholder="Unit Price"
+            min="0"
+            step="0.01"
+            required
+          />
+          <button type="submit">Add Item</button>
+        </form>
+
+        <table id="billTable">
+          <thead>
+            <tr>
+              <th>Item Name</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th>Total Price</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div id="totalBill">Total Bill: 0.00 ৳</div>
+      </div>
+    </main>
+
+    <script>
+      const userArea = document.getElementById("userArea");
+      const loginSection = document.getElementById("loginSection");
+      const billSection = document.getElementById("billSection");
+      const displayUserName = document.getElementById("displayUserName");
+      const loginForm = document.getElementById("loginForm");
+      const userNameInput = document.getElementById("userNameInput");
+      const billForm = document.getElementById("billForm");
+      const billTableBody = document.querySelector("#billTable tbody");
+      const totalBillDiv = document.getElementById("totalBill");
+
+      let totalBillAmount = 0;
+
+      // চেক করুন ইউজারের নাম localStorage-এ আছে কিনা
+      function checkUser() {
+        const savedUser = localStorage.getItem("userName");
+        if (savedUser) {
+          showBillSection(savedUser);
+        } else {
+          showLoginSection();
+        }
+      }
+
+      // লগইন সেকশন দেখানো
+      function showLoginSection() {
+        loginSection.style.display = "block";
+        billSection.style.display = "none";
+        userArea.innerHTML = "";
+      }
+
+      // বিল সেকশন দেখানো
+      function showBillSection(userName) {
+        loginSection.style.display = "none";
+        billSection.style.display = "block";
+        displayUserName.textContent = userName;
+        userArea.innerHTML = `
+      ${userName} 
+      <button id="logoutBtn">লগ আউট</button>
+    `;
+        document.getElementById("logoutBtn").addEventListener("click", logout);
+      }
+
+      // লগইন ফর্ম সাবমিট হ্যান্ডলার
+      loginForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const name = userNameInput.value.trim();
+        if (name) {
+          localStorage.setItem("userName", name);
+          userNameInput.value = "";
+          showBillSection(name);
+        }
+      });
+
+      // লগআউট ফাংশন
+      function logout() {
+        localStorage.removeItem("userName");
+        billTableBody.innerHTML = "";
+        totalBillAmount = 0;
+        updateTotalBill();
+        showLoginSection();
+      }
+
+      // বিল ফর্ম সাবমিট হ্যান্ডলার
+      billForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const itemName = document.getElementById("itemName").value.trim();
+        const quantity = parseFloat(document.getElementById("quantity").value);
+        const price = parseFloat(document.getElementById("price").value);
+
+        if (
+          !itemName ||
+          isNaN(quantity) ||
+          isNaN(price) ||
+          quantity <= 0 ||
+          price < 0
+        ) {
+          alert("সঠিক তথ্য দিন!");
+          return;
+        }
+
+        const totalPrice = quantity * price;
+        totalBillAmount += totalPrice;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+      <td>${itemName}</td>
+      <td>${quantity}</td>
+      <td>${price.toFixed(2)}</td>
+      <td>${totalPrice.toFixed(2)}</td>
+    `;
+        billTableBody.appendChild(tr);
+
+        updateTotalBill();
+
+        billForm.reset();
+      });
+
+      // মোট বিল আপডেট করার ফাংশন
+      function updateTotalBill() {
+        totalBillDiv.textContent = `Total Bill: ${totalBillAmount.toFixed(
+          2
+        )} ৳`;
+      }
+
+      // পেজ লোডে ইউজার চেক করা
+      checkUser();
+    </script>
+  </body>
+</html>
